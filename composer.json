@@ -1,0 +1,24 @@
+{
+  "name": "maobohe/lib",
+  "description": "maobohe development lib",
+  "minimum-stability": "stable",
+  "license": "proprietary",
+  "authors": [
+    {
+      "name": "maobohe",
+      "email": "tenleaves@gmail.com"
+    }
+  ],
+  "require": {
+    "php": ">=5.3.0",
+    "php-curl-class/php-curl-class": "5.0.0"
+  },
+  "autoload": {
+    "files": [
+      "/Functions.php"
+    ],
+    "psr-4": {
+      "Lib\\": "./"
+    }
+  }
+}
