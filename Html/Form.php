@@ -53,6 +53,25 @@ class Form
         }
         return $html;
     }
+    static function checkbox($definitionList, $fieldName, $selectedValue = null, $onclick = null)
+    {
+        $html = '';
+        foreach ($definitionList as $definition_value => $definition_name) {
+            $checked = '';
+            if (isset($_REQUEST [$fieldName]) && $_REQUEST [$fieldName] == $definition_value) {
+                $checked = 'checked="checked"';
+            } elseif
+            ($selectedValue == $definition_value
+            ) {
+                $checked = 'checked="checked"';
+            }
+
+            $className = !empty($fieldName) ? 'class="' . $fieldName . '_' . $definition_value . '"' : '';
+            $removeParaJsArr = !empty($removeParaArr) && is_array($removeParaArr) ? "['" . implode("','", $removeParaArr) . "']" : "[]";
+            $html .= '<label ' . $className . '><input type="checkbox" name="' . $fieldName . '" value="' . $definition_value . '" onclick="' . $onclick . '"  ' . $checked . '/><span>' . $definition_name . '</span></label>';
+        }
+        return $html;
+    }
 
     /**
      * 生成 <select></select>

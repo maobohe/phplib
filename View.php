@@ -79,15 +79,24 @@ class View
     }
 
     /**
+     * @var array
+     */
+    protected $headerArr;
+
+    public function setHeader($key, $value)
+    {
+        $this->headerArr[$key] = $value;
+    }
+
+    /**
      * @param string $tplName
      */
     public function display($tplName = null)
     {
-        /**
-         * 设置编码集合
-         */
-        if (!empty($this->viewConf['charset'])) {
-            header('Content-type: text/html; charset=' . $this->viewConf['charset']);
+        if (!empty($this->headerArr)) {
+            foreach ($this->headerArr as $_hk => $_hv) {
+                header($_hk . ':' . $_hv);
+            }
         }
 
         if (!empty($tplName)) {

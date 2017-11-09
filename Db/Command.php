@@ -399,21 +399,25 @@ class Command
         } else
             $par = '';
 
-        $this->prepare();
-        if ($params === array())
-            $this->_statement->execute();
-        else
-            $this->_statement->execute($params);
+        try {
+            $this->prepare();
+            if ($params === array())
+                $this->_statement->execute();
+            else
+                $this->_statement->execute($params);
 
-        if ($method === '')
-            $result = new DataReader($this);
-        else {
-            $mode = ( array )$mode;
-            $result = call_user_func_array(array(
-                $this->_statement,
-                $method
-            ), $mode);
-            $this->_statement->closeCursor();
+            if ($method === '')
+                $result = new DataReader($this);
+            else {
+                $mode = ( array )$mode;
+                $result = call_user_func_array(array(
+                    $this->_statement,
+                    $method
+                ), $mode);
+                $this->_statement->closeCursor();
+            }
+        } catch (\Exception $e) {
+            throw new \PDOException($e->getMessage());
         }
         return $result;
     }
@@ -889,7 +893,7 @@ class Command
      */
     public function order($columns)
     {
-        if(empty($columns)){
+        if (empty($columns)) {
             return $this;
         }
 
@@ -1168,16 +1172,24 @@ class Command
         if (empty($table)) {
             $table = $this->tableName;
         }
-        if(!is_array($params)){
-            $params = [];
-        }
-        $lines = array();
-        foreach ($columns as $name => $value) {
 
-            $lines[] = $this->_connection->quoteColumnName($name) . '=:' . $name;
-            $params[':' . $name] = $value;
+        $update = '';
+        if (is_array($columns)) {
+            if (!is_array($params)) {
+                $params = [];
+            }
+            $lines = array();
+            foreach ($columns as $name => $value) {
+                $lines[] = $this->_connection->quoteColumnName($name) . '=:' . $name;
+                $params[':' . $name] = $value;
+            }
+            $update = implode(', ', $lines);
+        } else if (is_string($columns)) {
+            $update = $columns;
+        } else {
+            throw new \PDOException('参数 $columns 类型错误，请使用数组或字符串类型 ');
         }
-        $sql = 'UPDATE ' . $this->_connection->quoteTableName($table) . ' SET ' . implode(', ', $lines);
+        $sql = 'UPDATE ' . $this->_connection->quoteTableName($table) . ' SET ' . $update;
         if (($where = $this->processConditions($conditions)) != '')
             $sql .= ' WHERE ' . $where;
         return $this->setText($sql)->execute($params);

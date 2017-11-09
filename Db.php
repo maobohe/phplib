@@ -1,4 +1,5 @@
 <?php
+
 namespace Lib;
 
 /**
@@ -117,7 +118,7 @@ class Db
                         $conf['username'],
                         $conf['password']
                     );
-                    if ( !empty($conf['charset']) ) {
+                    if (!empty($conf['charset'])) {
                         $this->dbSlave->charset = $conf['charset'];
                     }
                 } else {
@@ -229,9 +230,8 @@ class Db
     public function query($sql, $autoTablePrefix = true)
     {
         if ($autoTablePrefix === true) {
-            $sql = preg_replace('/(from)(\s+)(`|)?([a-zA-Z_]+)(`|)(\s+)/i', '\1\2\3' . $this->db->tablePrefix . '\4\5\6', $sql);
-            $sql = preg_replace('/(join)(\s+)(`|)?([a-zA-Z_]+)(`|)(\s+)/i', '\1\2\3' . $this->db->tablePrefix . '\4\5\6', $sql);
-//            $sql = preg_replace('/(into|^update|from|join)\s+(`|)?([a-zA-Z_]+)(`|)?/i', '\1 ' . $this->db->tablePrefix . '\3', $sql,1);
+            $sql = preg_replace('/(from)(\s+)(`|)?([a-zA-Z_]+)(`|)(\s+|)/i', '\1\2\3' . $this->db->tablePrefix . '\4\5\6', $sql);
+            $sql = preg_replace('/(join)(\s+)(`|)?([a-zA-Z_]+)(`|)(\s+|)/i', '\1\2\3' . $this->db->tablePrefix . '\4\5\6', $sql);
         }
 
         self::_operationLog($this->adapterName, $sql);
