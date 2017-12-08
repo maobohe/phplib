@@ -1,4 +1,5 @@
 <?php
+
 namespace Lib;
 
 class View
@@ -62,7 +63,7 @@ class View
      */
     public function assign($varName, $varValue)
     {
-        $this->viewVar[ltrim($varName,'$')] = $varValue;
+        $this->viewVar[ltrim($varName, '$')] = $varValue;
     }
 
     public function setViewConf(array $viewConf)
@@ -78,29 +79,22 @@ class View
         $this->layoutName = $layoutName;
     }
 
-    /**
-     * @var array
-     */
-    protected $headerArr;
-
-    public function setHeader($key, $value)
-    {
-        $this->headerArr[$key] = $value;
-    }
+    private $tplName;
 
     /**
      * @param string $tplName
      */
     public function display($tplName = null)
     {
-        if (!empty($this->headerArr)) {
-            foreach ($this->headerArr as $_hk => $_hv) {
-                header($_hk . ':' . $_hv);
-            }
+        /**
+         * 设置编码集合
+         */
+        if (!empty($this->viewConf['charset'])) {
+            header('Content-type: text/html; charset=' . $this->viewConf['charset']);
         }
 
         if (!empty($tplName)) {
-            $tplFileName = $this->tplPath . DIRECTORY_SEPARATOR . $tplName . '.php';
+            $this->tplName = $tplName;
         }
         if (!empty($this->viewVar)) {
             extract($this->viewVar);
@@ -112,6 +106,16 @@ class View
             echo "layout file {$layoutFileName} not exist!";
         }
         exit;
+    }
+
+    public function renderOfLayout()
+    {
+        $tplFileName = $this->tplPath . DIRECTORY_SEPARATOR . $this->tplName . '.php';
+        if (file_exists($tplFileName)) {
+            require($tplFileName);
+        } else {
+            echo("template file '$tplFileName' not exist!");
+        };
     }
 
     /**
