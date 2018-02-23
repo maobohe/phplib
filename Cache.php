@@ -58,10 +58,8 @@ abstract class Cache
     public static function Close()
     {
         foreach (self::$adapters as $adapterName => $adapter) {
-            if ($adapter['adapter'] === 'redis') {
-                if (!empty($adapter['connId'])) {
-                    $adapter['connId']->cache->close();
-                }
+            if ($adapter['adapter'] === 'redis' && is_object($adapter['connId']->cache)) {
+                $adapter['connId']->cache->close();
             }
         }
     }

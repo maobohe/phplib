@@ -3,6 +3,7 @@ namespace Lib;
 
 use \Curl\Curl;
 use \Curl\MultiCurl;
+use \Lib\Fusing\FusingStrategy;
 
 class ApiClient
 {
@@ -80,6 +81,17 @@ class ApiClient
     private $recordApiResponse = false;
 
     /**
+     * 是否熔断0：不熔断，1开启熔断
+     * @var int 默认不熔断
+     */
+    private $fusing = 0;
+
+    /**
+     * @var string 发送熔断时的输出日志信息
+     */
+    private $fusingAlertInfo = "";
+
+    /**
      * 构造函数
      */
     public function __construct()
@@ -135,16 +147,31 @@ class ApiClient
     }
 
     /**
+     * PUT 方式请求 API
+     * @param string $requestUrl
+     * @param array $putArguments
+     * @param int $timeOutMS
+     * @return array
+     */
+    public function put($requestUrl, $putArguments, $timeOutMS)
+    {
+        $this->_method = 'put';
+        return $this->send($requestUrl, $putArguments, $timeOutMS);
+    }
+
+    /**
      * GET 方式请求 API
      * @param string $requestUrl
      * @param array $getArguments
      * @param int $timeOutMS
+     * @param int $fusing
+     * @param string $fusingAlertInfo
      * @return array
      */
-    public function get($requestUrl, $getArguments, $timeOutMS)
+    public function get($requestUrl, $getArguments, $timeOutMS, $fusing = 0, $fusingAlertInfo = "")
     {
         $this->_method = 'get';
-        return $this->send($requestUrl, $getArguments, $timeOutMS);
+        return $this->send($requestUrl, $getArguments, $timeOutMS, $fusing, $fusingAlertInfo);
     }
 
     /**
@@ -152,13 +179,17 @@ class ApiClient
      * @param string $requestUrl
      * @param array $arguments
      * @param int $timeOutMS
+     * @param int $fusing
+     * @param string $fusingAlertInfo
      * @return array
      */
-    protected function send($requestUrl, $arguments, $timeOutMS)
+    protected function send($requestUrl, $arguments, $timeOutMS, $fusing = 0, $fusingAlertInfo = "")
     {
         $this->_url = $requestUrl;
         $this->_arguments = $arguments;
         $this->_connectTimeout = $timeOutMS;
+        $this->fusing = $fusing;
+        $this->fusingAlertInfo = $fusingAlertInfo;
         return $this->httpCall();
     }
 
@@ -212,15 +243,44 @@ class ApiClient
             throw new \ErrorException('url is must');
         }
 
+        /**
+         * 熔断方案：阈值基数60秒
+         */
+        $baseTimeStep = 60;
+        //熔断方案
+        if($this->fusing) {//判断是否已经开启熔断，如果开启则直接返回缓存信息
+            $fusingRes = FusingStrategy::checkFusingBeforeRequest($this->_url, $baseTimeStep, $this->fusingAlertInfo);
+            if($fusingRes["is_fusing"]) {
+                //处理返回结果
+                $this->getCurl()->rawResponse = false;
+                return $fusingRes["fusing_result"];
+            }
+        }
+
         $tryTimes = 0;
         do {
             if ($this->_method == 'post') {
                 $result = $this->getCurl()->post($this->_url, $this->_arguments);
+            }elseif ($this->_method == 'put') {
+                $result = $this->getCurl()->put($this->_url, $this->_arguments);
             } else {
                 $result = $this->getCurl()->get($this->_url, $this->_arguments);
             }
             ++$tryTimes;
-        } while (strlen($result) == 0 && $tryTimes < $this->_connectRetryTimes);
+            $strResult = '';
+            if( is_string( $result ) ){
+                $strResult = $result;
+            }
+            if( is_object( $result ) ){
+                $strResult = json_encode($result);
+            }
+        } while (strlen($strResult) == 0 && $tryTimes < $this->_connectRetryTimes);
+
+        if($this->fusing && (strlen($strResult)==0 || $this->getCurl()->httpStatusCode != 200)){
+            //开启熔断，并处理返回结果
+            $this->getCurl()->rawResponse = false;
+            return FusingStrategy::startUpFusing($this->_url, $baseTimeStep, $this->fusingAlertInfo);
+        }
     }
 
     /**
@@ -239,7 +299,6 @@ class ApiClient
         $this->getCurl()->setOpt(CURLOPT_NOSIGNAL, 1);
         $this->getCurl()->setOpt(CURLOPT_CONNECTTIMEOUT_MS, $this->_connectTimeout);
         $this->getCurl()->setOpt(CURLOPT_TIMEOUT_MS, $this->_connectTimeout);
-
         //执行curl
         $this->_curlCall();
 
@@ -373,6 +432,7 @@ class ApiClient
         debugMsg('parameter', $this->_arguments);
 
         if ($sendType == 'curl') {
+            debugMsg('http status code', $this->getCurl()->httpStatusCode);
             debugMsg("error({$this->getCurl()->curlErrorCode})", $this->getCurl()->curlErrorMessage);
             debugMsg('result', $this->getCurl()->rawResponse);
         }
@@ -389,14 +449,19 @@ class ApiClient
     {
         //判断是否是curl
         $totalTime = 0;
+        $httpCode = 0;
         if ($this->getCurl()) {
-            $totalTime = $this->getCurl()->curlInfo['total_time'];
+            $totalTime = $this->getCurl()->getInfo(CURLINFO_TOTAL_TIME);
+            $httpCode = $this->getCurl()->getInfo(CURLINFO_HTTP_CODE);
         }
         $curlStartTime = $this->_curlStartTime;
         $curlEndTime = microtime(true);
         $microTime = round($curlEndTime - $curlStartTime, 5);
         $host = parse_url($this->_url)['host'];
         $hostIp = gethostbyname($host);
+        $curlErrorCode = $this->getCurl()->curlErrorCode;
+        $curlErrorMessage = $this->getCurl()->errorMessage;
+        $soapErrorMessage = $this->errorMessage;;
         //获取当前请求的 uri
         $uri = 'http://' . $_SERVER['SERVER_ADDR'];
         if (isset($_SERVER['REQUEST_URI'])) {
@@ -415,10 +480,28 @@ class ApiClient
             implode(',', $this->_arguments),
             $host,
             $hostIp,
+            $httpCode,
+            $curlErrorCode,
+            $curlErrorMessage,
+            $soapErrorMessage,
             $totalTime,
             $microTime,
             $uri, ////请保留此字段为最后一位
         ];
+
+        /**
+         * 记录错误日志
+         */
+        if (!empty($this->getCurl()->curlErrorCode) || !empty($this->errorMessage)) {
+            $apiError = $args;
+            $apiError[0] = 'api_error';
+            if (is_string($this->_result)) {
+                $apiError[] = $this->_result;
+            } else {
+                $apiError[] = var_export($this->_result, TRUE);
+            }
+            call_user_func_array('writeLog', $apiError);
+        }
 
         /*
          * 记录响应内容信息日志

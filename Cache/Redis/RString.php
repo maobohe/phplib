@@ -19,7 +19,6 @@ class RString extends Base
      */
     function setRewrite($key, $value, $expiration = null)
     {
-        \Lib\Cache::_operationLog($this->_cacheAdapterName, 'set', func_get_args());
         if (!empty($expiration) && ctype_digit($expiration)) {
             $return = $this->redis->setex($key, $expiration, $value);
         } else {

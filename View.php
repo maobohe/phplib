@@ -1,5 +1,4 @@
 <?php
-
 namespace Lib;
 
 class View
@@ -94,7 +93,7 @@ class View
         }
 
         if (!empty($tplName)) {
-            $this->tplName = $tplName;
+            $this->tplName = $tplFileName = $this->tplPath . DIRECTORY_SEPARATOR . $tplName . '.php';
         }
         if (!empty($this->viewVar)) {
             extract($this->viewVar);

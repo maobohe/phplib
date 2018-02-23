@@ -228,16 +228,21 @@ function debugMsg($varName, $varValue)
     //办公网络才可以调试
     if (isInternalHttpAccess() && isDebug()) {
         $_debug_string[0] = "";
-        $_debug_string[1] = "<b>" . $varName . " :</b>";
-        $_debug_string[2] = print_r($varValue, true);
+        $_debug_string[1] = '<b onclick="ishidden(this)" style="cursor: pointer" class="c">' . $varName . ' :</b>';
+        $_debug_string[2] = "<span>" . print_r($varValue, true) . "</span>";
         $_debug_string[3] = "";
 
         // console
         if (PHP_SAPI == 'cli' || \Lib\Request::getInstance()->isAjax()) {
             $_debug_string[1] = $varName . ":";
         } else {
-            $_debug_string[0] = "<pre>";
+            $_debug_string[0] = "<pre >";
             $_debug_string[3] = "</pre>";
+        }
+        static $htmlHeader;
+        if (empty($htmlHeader)) {
+            $htmlHeader = true;
+            echo('<style>.c:before{content:"-";}.x:before{content:"+";}</style><script>function ishidden(t){if(t.className=="c"){t.className="x";t.nextElementSibling.style.display="none";}else{t.className="c";t.nextElementSibling.style.display="";}}</script>');
         }
         echo("\n" . (implode("\n", $_debug_string)) . "\n");
     }
@@ -257,12 +262,25 @@ function appVersionCompare($version1, $version2)
     $count = count($version1_arr) > count($version2_arr) ? count($version1_arr) : count($version2_arr);
     for ($i = 0; $i < $count; $i++) {
         if ($version1_arr[$i] > $version2_arr[$i]) {
-            return ">";
+            return 1;
         } else if ($version1_arr[$i] < $version2_arr[$i]) {
-            return "<";
+            return -1;
         }
     }
-    return "=";
+    return 0;
+}
+
+/**
+ * 版本比较
+ * @param $target
+ * @param string $clientVersion
+ * @param string $clientType
+ * versionCompare(array('android'=>'5.8.2', 'iphone'=>'5.0.4'), AppInit::$sysParam['client_version'], AppInit::$sysParam['user_client'])
+ */
+function versionCompare($target, $clientVersion, $clientType){
+    if(isset($target[$clientType])){
+        return appVersionCompare($clientVersion, $target[$clientType]);
+    }
 }
 
 //运行环境

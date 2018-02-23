@@ -6,6 +6,17 @@ class Exception extends \Exception
 
     static $error_html_charset = 'utf-8';
 
+    static $display_errors = false;
+
+    /**
+     *
+     * @param $isShow
+     */
+    public static function setDisplayErrors($isShow)
+    {
+        self::$display_errors = $isShow;
+    }
+
     public static function exceptionHandler($e)
     {
         if (defined('HPHP_VERSION')) {
@@ -14,7 +25,8 @@ class Exception extends \Exception
             error_log($e->__toString());
         }
 
-        if (ini_get('display_errors')) {
+//        if (ini_get('display_errors')) {
+        if (self::$display_errors) {
             // console
             if (PHP_SAPI == 'cli') {
                 print_r($e->getMessage() . "\n");
@@ -37,10 +49,10 @@ class Exception extends \Exception
      */
     public static function errorHandler($errorNumber, $message, $errfile, $errline)
     {
-        $display_errors = ini_get("display_errors");
+//        $display_errors = ini_get("display_errors");
         $e_levels = ini_get("error_reporting");
 
-        if ($display_errors) {
+        if (self::$display_errors) {
             if ($errorNumber >= $e_levels) {
                 switch ($errorNumber) {
                     case E_PARSE:

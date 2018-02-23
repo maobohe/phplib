@@ -91,16 +91,16 @@ class Redis extends \Lib\Cache
     {
         return new Redis\Lists($this->cache, $this->adapterName);
     }
-    
+
     /**
      * 带格式化set
      * @param string $key
-     * @param mixed $value 
+     * @param mixed $value
      * @param number $ttl   缓存时间
      * @param string $toStrType 格式值类型
      * @return return_type
      */
-    public function setRewrite($key, $value, $ttl = 300, $toStrType = 'serialize')
+    public function set($key, $value, $ttl = 300, $toStrType = 'serialize')
     {
         switch ($toStrType){
             case 'serialize':
@@ -114,7 +114,7 @@ class Redis extends \Lib\Cache
         }
         self::string()->setex($key, $ttl, $value);
     }
-    
+
     /**
      * 带格式化get
      * @param string $key
@@ -124,7 +124,7 @@ class Redis extends \Lib\Cache
      * @copyright
      * @return string
      */
-    public function getRewrite($key, $toStrType = 'serialize')
+    public function get($key, $toStrType = 'serialize')
     {
         $value = self::string()->get($key);
         switch ($toStrType){
@@ -139,7 +139,7 @@ class Redis extends \Lib\Cache
         }
         return $value;
     }
-    
+
 
 
     /**

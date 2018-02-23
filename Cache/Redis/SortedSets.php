@@ -52,7 +52,6 @@ class SortedSets extends Base
      */
     public function zInterStoreRewrite($Output, $ZSetKeys, array $Weights = null, $aggregateFunction = 'SUM')
     {
-        \Lib\Cache::_operationLog($this->_cacheAdapterName, 'zInter', func_get_args());
         return $this->redis->zInter($Output, $ZSetKeys, $Weights, $aggregateFunction);
     }
 

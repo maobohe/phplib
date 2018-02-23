@@ -111,10 +111,12 @@ class Conf
      * 设置配置中心
      * TODO::
      * @param $key
-     * @param $file
+     * @param $confApi
      */
-    public static function setConfCenter($key, $file)
+    public static function setConfApi($key, $confApi)
     {
+        $apiClient = new \Lib\ApiClient();
+        $apiClient->get($confApi,null,100);
 
     }
 

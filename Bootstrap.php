@@ -62,10 +62,10 @@ abstract class Bootstrap
 
     /**
      * 设置异常处理类
-     * @param boolean $display_errors
+     * @param boolean $isShow
      * @param int $e_levels
      */
-    public static function setException($display_errors, $e_levels = null)
+    public static function setException($isShow, $e_levels = null)
     {
         if ($e_levels === null) {
             $e_levels = E_ALL ^ E_NOTICE;
@@ -73,7 +73,8 @@ abstract class Bootstrap
 
         error_reporting($e_levels);
 
-        if ($display_errors) {
+        if (!empty($isShow)) {
+            \Lib\Exception::setDisplayErrors(true);
             ini_set("display_startup_errors", 1);
             ini_set("display_errors", 1);
         } else {
@@ -90,6 +91,8 @@ abstract class Bootstrap
 
         //debug
         register_shutdown_function("runtimeInfo");
+
+        //register_shutdown_function(array("\Lib\Cache",'Close'));
     }
 
     /**
