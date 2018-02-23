@@ -6,9 +6,9 @@ interface Storage
 {
     public function __construct();
 
-    public function setVal();
+    public function setVal($key, $val);
 
-    public function getVal();
+    public function getVal($key);
 
     /**
      * @param $array
